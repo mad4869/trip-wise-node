@@ -1,23 +1,20 @@
 import { Router } from "express";
-import type { Itinerary, PrismaClient } from "@prisma/client";
+import { PrismaClient, type Itinerary } from "@prisma/client";
 
-const router = Router();
+const itinerariesRouter = Router();
+const prisma = new PrismaClient();
 
-const itinerariesRouter = (prisma: PrismaClient) => {
-    router.get("/itinerary:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.post("/itinerary", (req, res) => {
-        res.send("Hello World");
-    });
-    router.put("/itinerary:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.delete("/itinerary:id", (req, res) => {
-        res.send("Hello World");
-    });
-
-    return router;
-};
+itinerariesRouter.get("/itinerary:id", (req, res) => {
+    res.send("Hello World");
+});
+itinerariesRouter.post("/itinerary", (req, res) => {
+    res.send("Hello World");
+});
+itinerariesRouter.put("/itinerary:id", (req, res) => {
+    res.send("Hello World");
+});
+itinerariesRouter.delete("/itinerary:id", (req, res) => {
+    res.send("Hello World");
+});
 
 export default itinerariesRouter;

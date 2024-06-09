@@ -1,15 +1,14 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * User routes
 */
+
 import usersRouter from "./routes/users";
 
-router.use('/users', usersRouter(prisma));
+router.use('/users', usersRouter);
 
 /**
  * Trip routes
@@ -17,7 +16,7 @@ router.use('/users', usersRouter(prisma));
 
 import tripsRouter from "./routes/trips";
 
-router.use('/trips', tripsRouter(prisma));
+router.use('/trips', tripsRouter);
 
 /**
  * Itinerary routes
@@ -25,7 +24,7 @@ router.use('/trips', tripsRouter(prisma));
 
 import itinerariesRouter from "./routes/itineraries";
 
-router.use('/itineraries', itinerariesRouter(prisma));
+router.use('/itineraries', itinerariesRouter);
 
 /**
  * Activity routes
@@ -33,7 +32,7 @@ router.use('/itineraries', itinerariesRouter(prisma));
 
 import activitiesRouter from "./routes/activities";
 
-router.use('/activities', activitiesRouter(prisma));
+router.use('/activities', activitiesRouter);
 
 /**
  * Expense routes
@@ -41,7 +40,7 @@ router.use('/activities', activitiesRouter(prisma));
 
 import expensesRouter from "./routes/expenses";
 
-router.use('/expenses', expensesRouter(prisma));
+router.use('/expenses', expensesRouter);
 
 /**
  * Reminder routes
@@ -49,6 +48,6 @@ router.use('/expenses', expensesRouter(prisma));
 
 import remindersRouter from "./routes/reminders";
 
-router.use('/reminders', remindersRouter(prisma));
+router.use('/reminders', remindersRouter);
 
 export default router;

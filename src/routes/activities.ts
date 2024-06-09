@@ -1,23 +1,20 @@
 import { Router } from "express";
-import type { Activity, PrismaClient } from "@prisma/client";
+import { PrismaClient, type Activity } from "@prisma/client";
 
-const router = Router();
+const activitiesRouter = Router();
+const prisma = new PrismaClient();
 
-const activitiesRouter = (prisma: PrismaClient) => {
-    router.get("/activity:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.post("/activity", (req, res) => {
-        res.send("Hello World");
-    });
-    router.put("/activity:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.delete("/activity:id", (req, res) => {
-        res.send("Hello World");
-    });
-
-    return router;
-};
+activitiesRouter.get("/activity:id", (req, res) => {
+    res.send("Hello World");
+});
+activitiesRouter.post("/activity", (req, res) => {
+    res.send("Hello World");
+});
+activitiesRouter.put("/activity:id", (req, res) => {
+    res.send("Hello World");
+});
+activitiesRouter.delete("/activity:id", (req, res) => {
+    res.send("Hello World");
+});
 
 export default activitiesRouter;

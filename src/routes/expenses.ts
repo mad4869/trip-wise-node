@@ -1,23 +1,20 @@
 import { Router } from "express";
-import type { Expense, PrismaClient } from "@prisma/client";
+import { PrismaClient, type Expense } from "@prisma/client";
 
-const router = Router();
+const expensesRouter = Router();
+const prisma = new PrismaClient();
 
-const expensesRouter = (prisma: PrismaClient) => {
-    router.get("/expense:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.post("/expense", (req, res) => {
-        res.send("Hello World");
-    });
-    router.put("/expense:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.delete("/expense:id", (req, res) => {
-        res.send("Hello World");
-    });
-
-    return router;
-};
+expensesRouter.get("/expense:id", (req, res) => {
+    res.send("Hello World");
+});
+expensesRouter.post("/expense", (req, res) => {
+    res.send("Hello World");
+});
+expensesRouter.put("/expense:id", (req, res) => {
+    res.send("Hello World");
+});
+expensesRouter.delete("/expense:id", (req, res) => {
+    res.send("Hello World");
+});
 
 export default expensesRouter;

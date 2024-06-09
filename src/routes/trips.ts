@@ -1,23 +1,214 @@
 import { Router } from "express";
-import type { Trip, PrismaClient } from "@prisma/client";
+import { PrismaClient, type Trip } from "@prisma/client";
 
-const router = Router();
+type UserQuery = { userId: string | null }
+type NewTripInput = Omit<Trip, "id" | "createdAt" | "updatedAt">;
+type ExistingTripInput = Omit<Trip, "id" | "createdAt" | "updatedAt">;
 
-const tripsRouter = (prisma: PrismaClient) => {
-    router.get("/trip:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.post("/trip", (req, res) => {
-        res.send("Hello World");
-    });
-    router.put("/trip:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.delete("/trip:id", (req, res) => {
-        res.send("Hello World");
-    });
+const tripsRouter = Router();
+const prisma = new PrismaClient();
 
-    return router;
-};
+tripsRouter.get("/:id", async (req, res) => {
+    const tripId = req.params.id;
+    const { userId } = req.body as UserQuery;
+
+    if (!userId) {
+        return res.status(400).json({
+            success: false,
+            message: "User ID is required"
+        });
+    }
+
+    try {
+        const trip = await prisma.trip.findUnique({
+            where: {
+                id: tripId
+            }
+        });
+
+        if (!trip) {
+            res.status(404).json({
+                success: false,
+                message: "Trip not found"
+            });
+        } else if (trip.userId !== userId) {
+            res.status(403).json({
+                success: false,
+                message: "User not authorized to view this trip"
+            })
+        } else {
+            res.status(200).json({
+                success: true,
+                message: `Trip with ID ${tripId} is found`,
+                data: trip
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
+
+tripsRouter.post("/", async (req, res) => {
+    const { userId, title, description, destination, startDate, endDate } = req.body as NewTripInput
+
+    if (!userId || !title || !destination || !startDate || !endDate) {
+        return res.status(400).json({
+            success: false,
+            message: "All fields are required"
+        });
+    }
+
+    if (startDate > endDate) {
+        return res.status(400).json({
+            success: false,
+            message: "Start date must be before end date"
+        });
+    }
+
+    try {
+        const newTrip = await prisma.trip.create({
+            data: {
+                userId,
+                title,
+                description,
+                destination,
+                startDate,
+                endDate
+            }
+        });
+
+        res.status(201).json({
+            success: true,
+            message: "Trip created successfully",
+            data: newTrip
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
+
+tripsRouter.put("/:id", async (req, res) => {
+    const tripId = req.params.id;
+
+    const { userId, title, description, destination, startDate, endDate } = req.body as ExistingTripInput;
+
+    if (!userId || !title || !destination || !startDate || !endDate) {
+        return res.status(400).json({
+            success: false,
+            message: "All fields are required"
+        });
+    }
+
+    if (startDate > endDate) {
+        return res.status(400).json({
+            success: false,
+            message: "Start date must be before end date"
+        });
+    }
+
+    try {
+        const trip = await prisma.trip.findUnique({
+            where: {
+                id: tripId
+            }
+        });
+
+        if (!trip) {
+            return res.status(404).json({
+                success: false,
+                message: "Trip not found"
+            });
+        } else if (trip.userId !== userId) {
+            return res.status(403).json({
+                success: false,
+                message: "User not authorized to update this trip"
+            });
+        }
+
+        await prisma.trip.update({
+            where: {
+                id: tripId
+            },
+            data: {
+                title,
+                description,
+                destination,
+                startDate,
+                endDate
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Trip updated successfully",
+            data: trip
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
+
+tripsRouter.delete("/:id", async (req, res) => {
+    const tripId = req.params.id;
+
+    const { userId } = req.body as UserQuery;
+
+    if (!userId) {
+        return res.status(400).json({
+            success: false,
+            message: "User ID is required"
+        });
+    }
+
+    try {
+        const trip = await prisma.trip.findUnique({
+            where: {
+                id: tripId
+            }
+        });
+
+        if (!trip) {
+            return res.status(404).json({
+                success: false,
+                message: "Trip not found"
+            });
+        } else if (trip.userId !== userId) {
+            return res.status(403).json({
+                success: false,
+                message: "User not authorized to delete this trip"
+            });
+        }
+
+        await prisma.trip.delete({
+            where: {
+                id: tripId
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Trip deleted successfully",
+            data: trip
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
 
 export default tripsRouter;

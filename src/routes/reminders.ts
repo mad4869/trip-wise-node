@@ -1,23 +1,20 @@
 import { Router } from "express";
-import type { Reminder, PrismaClient } from "@prisma/client";
+import { PrismaClient, type Reminder } from "@prisma/client";
 
-const router = Router();
+const remindersRouter = Router();
+const prisma = new PrismaClient();
 
-const remindersRouter = (prisma: PrismaClient) => {
-    router.get("/reminder:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.post("/reminder", (req, res) => {
-        res.send("Hello World");
-    });
-    router.put("/reminder:id", (req, res) => {
-        res.send("Hello World");
-    });
-    router.delete("/reminder:id", (req, res) => {
-        res.send("Hello World");
-    });
-
-    return router;
-};
+remindersRouter.get("/reminder:id", (req, res) => {
+    res.send("Hello World");
+});
+remindersRouter.post("/reminder", (req, res) => {
+    res.send("Hello World");
+});
+remindersRouter.put("/reminder:id", (req, res) => {
+    res.send("Hello World");
+});
+remindersRouter.delete("/reminder:id", (req, res) => {
+    res.send("Hello World");
+});
 
 export default remindersRouter;
