@@ -2,7 +2,7 @@ import { Router } from "express";
 import { PrismaClient, type Activity } from "@prisma/client";
 
 type UserQuery = { userId: string, tripId: string, itineraryId: string }
-type NewActivityInput = Omit<Activity, "id" | "createdAt" | "updatedAt"> & { userId: string | null, tripId: string | null }
+type NewActivityInput = Omit<Activity, "id" | "createdAt" | "updatedAt"> & { userId: string, tripId: string }
 type ExistingActivityInput = Partial<Omit<NewActivityInput, 'userId' | 'tripId' | 'itineraryId'>> & {
     userId: string,
     tripId: string,
@@ -247,6 +247,13 @@ activitiesRouter.put("/:id", async (req, res) => {
         });
     }
 
+    if (startTime && endTime && startTime > endTime) {
+        return res.status(400).json({
+            success: false,
+            message: "Start time cannot be later than end time"
+        });
+    }
+
     try {
         const activity = await prisma.activity.findUnique({
             where: {
@@ -279,6 +286,11 @@ activitiesRouter.put("/:id", async (req, res) => {
             return res.status(403).json({
                 success: false,
                 message: "User not authorized to update this activity"
+            });
+        } else if ((startTime && startTime > activity.endTime) || (endTime && endTime < activity.startTime)) {
+            return res.status(400).json({
+                success: false,
+                message: "Start time and end time must be within the original range"
             });
         }
 
