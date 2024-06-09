@@ -7,7 +7,7 @@ type NewUserInput = Omit<User, "id" | "passwordHash" | "createdAt" | "updatedAt"
     password: string,
     confirmPassword: string
 };
-type ExistingUserInput = Omit<User, "id" | "passwordHash" | "createdAt" | "updatedAt">;
+type ExistingUserInput = Partial<Omit<User, "id" | "passwordHash" | "createdAt" | "updatedAt">>;
 
 const usersRouter = Router();
 const prisma = new PrismaClient();
@@ -99,15 +99,7 @@ usersRouter.post("/", async (req, res) => {
 
 usersRouter.put("/:id", async (req, res) => {
     const userId = req.params.id;
-
     const { name, email, phoneNumber, profilePictureURL } = req.body as ExistingUserInput;
-
-    if (!name || !email) {
-        return res.status(400).json({
-            success: false,
-            message: "Name and email are required"
-        });
-    }
 
     try {
         const user = await prisma.user.findUnique({
@@ -128,10 +120,10 @@ usersRouter.put("/:id", async (req, res) => {
                 id: userId
             },
             data: {
-                name,
-                email,
-                phoneNumber,
-                profilePictureURL
+                name: name || user.name,
+                email: email || user.email,
+                phoneNumber: phoneNumber || user.phoneNumber,
+                profilePictureURL: profilePictureURL || user.profilePictureURL
             }
         });
 

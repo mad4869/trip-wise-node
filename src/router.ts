@@ -50,4 +50,6 @@ import remindersRouter from "./routes/reminders";
 
 router.use('/reminders', remindersRouter);
 
+
+
 export default router;

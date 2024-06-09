@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { PrismaClient, type Trip } from "@prisma/client";
 
-type UserQuery = { userId: string | null }
+type UserQuery = { userId: string }
 type NewTripInput = Omit<Trip, "id" | "createdAt" | "updatedAt">;
-type ExistingTripInput = Omit<Trip, "id" | "createdAt" | "updatedAt">;
+type ExistingTripInput = Partial<Omit<NewTripInput, 'userId'>> & { userId: string };
 
 const tripsRouter = Router();
 const prisma = new PrismaClient();
@@ -97,17 +97,16 @@ tripsRouter.post("/", async (req, res) => {
 
 tripsRouter.put("/:id", async (req, res) => {
     const tripId = req.params.id;
-
     const { userId, title, description, destination, startDate, endDate } = req.body as ExistingTripInput;
 
-    if (!userId || !title || !destination || !startDate || !endDate) {
+    if (!userId) {
         return res.status(400).json({
             success: false,
-            message: "All fields are required"
+            message: "User ID is required"
         });
     }
 
-    if (startDate > endDate) {
+    if (startDate && endDate && startDate > endDate) {
         return res.status(400).json({
             success: false,
             message: "Start date must be before end date"
@@ -131,6 +130,11 @@ tripsRouter.put("/:id", async (req, res) => {
                 success: false,
                 message: "User not authorized to update this trip"
             });
+        } else if ((startDate && startDate > trip.endDate) || (endDate && endDate < trip.startDate)) {
+            return res.status(400).json({
+                success: false,
+                message: "Start date and end date must be within the original range"
+            });
         }
 
         await prisma.trip.update({
@@ -138,11 +142,11 @@ tripsRouter.put("/:id", async (req, res) => {
                 id: tripId
             },
             data: {
-                title,
-                description,
-                destination,
-                startDate,
-                endDate
+                title: title || trip.title,
+                description: description || trip.description,
+                destination: destination || trip.destination,
+                startDate: startDate || trip.startDate,
+                endDate: endDate || trip.endDate
             }
         });
 
