@@ -1,5 +1,6 @@
-import e, { Router } from "express";
-import { PrismaClient, type Expense } from "@prisma/client";
+import prisma from "@/db";
+import { Router } from "express";
+import { type Expense } from "@prisma/client";
 
 type UserQuery = { userId: string, tripId: string, itineraryId: string, activityId: string }
 type NewExpenseInput = Omit<Expense, "id" | "createdAt" | "updatedAt"> & {
@@ -15,7 +16,6 @@ type ExistingExpenseInput = Partial<Omit<NewExpenseInput, 'userId'>> & {
 };
 
 const expensesRouter = Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /expenses/:id

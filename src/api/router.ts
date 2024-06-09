@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-const router = Router();
+const apiRouter = Router();
 
 /**
  * User routes
@@ -8,7 +8,7 @@ const router = Router();
 
 import usersRouter from "./routes/users";
 
-router.use('/users', usersRouter);
+apiRouter.use('/users', usersRouter);
 
 /**
  * Trip routes
@@ -16,7 +16,7 @@ router.use('/users', usersRouter);
 
 import tripsRouter from "./routes/trips";
 
-router.use('/trips', tripsRouter);
+apiRouter.use('/trips', tripsRouter);
 
 /**
  * Itinerary routes
@@ -24,7 +24,7 @@ router.use('/trips', tripsRouter);
 
 import itinerariesRouter from "./routes/itineraries";
 
-router.use('/itineraries', itinerariesRouter);
+apiRouter.use('/itineraries', itinerariesRouter);
 
 /**
  * Activity routes
@@ -32,7 +32,7 @@ router.use('/itineraries', itinerariesRouter);
 
 import activitiesRouter from "./routes/activities";
 
-router.use('/activities', activitiesRouter);
+apiRouter.use('/activities', activitiesRouter);
 
 /**
  * Expense routes
@@ -40,7 +40,7 @@ router.use('/activities', activitiesRouter);
 
 import expensesRouter from "./routes/expenses";
 
-router.use('/expenses', expensesRouter);
+apiRouter.use('/expenses', expensesRouter);
 
 /**
  * Reminder routes
@@ -48,8 +48,8 @@ router.use('/expenses', expensesRouter);
 
 import remindersRouter from "./routes/reminders";
 
-router.use('/reminders', remindersRouter);
+apiRouter.use('/reminders', remindersRouter);
 
 
 
-export default router;
+export default apiRouter;

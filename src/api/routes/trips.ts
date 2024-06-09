@@ -1,12 +1,12 @@
+import prisma from "@/db";
 import { Router } from "express";
-import { PrismaClient, type Trip } from "@prisma/client";
+import { type Trip } from "@prisma/client";
 
 type UserQuery = { userId: string }
 type NewTripInput = Omit<Trip, "id" | "createdAt" | "updatedAt">;
 type ExistingTripInput = Partial<Omit<NewTripInput, 'userId'>> & { userId: string };
 
 const tripsRouter = Router();
-const prisma = new PrismaClient();
 
 tripsRouter.get("/:id", async (req, res) => {
     const tripId = req.params.id;

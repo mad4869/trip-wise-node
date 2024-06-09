@@ -1,12 +1,12 @@
+import prisma from '@/db'
 import { Router } from "express";
-import { PrismaClient, type Itinerary } from "@prisma/client";
+import { type Itinerary } from "@prisma/client";
 
 type UserQuery = { userId: string, tripId: string }
 type NewItineraryInput = Omit<Itinerary, "id" | "createdAt" | "updatedAt"> & { userId: string }
 type ExistingItineraryInput = Partial<Omit<NewItineraryInput, 'userId' | 'tripId'>> & { userId: string, tripId: string }
 
 const itinerariesRouter = Router();
-const prisma = new PrismaClient();
 
 itinerariesRouter.get("/:id", async (req, res) => {
     const itineraryId = req.params.id;

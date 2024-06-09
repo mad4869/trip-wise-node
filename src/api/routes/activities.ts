@@ -1,5 +1,6 @@
+import prisma from '@/db';
 import { Router } from "express";
-import { PrismaClient, type Activity } from "@prisma/client";
+import { type Activity } from "@prisma/client";
 
 type UserQuery = { userId: string, tripId: string, itineraryId: string }
 type NewActivityInput = Omit<Activity, "id" | "createdAt" | "updatedAt"> & { userId: string, tripId: string }
@@ -10,7 +11,6 @@ type ExistingActivityInput = Partial<Omit<NewActivityInput, 'userId' | 'tripId' 
 }
 
 const activitiesRouter = Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /activities/:id

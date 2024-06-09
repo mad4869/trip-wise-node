@@ -1,12 +1,12 @@
+import prisma from "@/db";
 import { Router } from "express";
-import { PrismaClient, type Reminder } from "@prisma/client";
+import { type Reminder } from "@prisma/client";
 
 type UserQuery = { userId: string, tripId: string }
 type NewReminderInput = Omit<Reminder, "id" | "createdAt" | "updatedAt">
 type ExistingReminderInput = Partial<Omit<NewReminderInput, "userId" | "tripId">> & { userId: string, tripId: string }
 
 const remindersRouter = Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /reminders/:id

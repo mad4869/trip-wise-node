@@ -1,26 +1,18 @@
-import bcrypt from "bcrypt";
+import prisma from "@/db";
 import { Router } from "express";
-import { PrismaClient, type User } from "@prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { check, validationResult } from 'express-validator';
+import { getUserById } from "@/handlers/users";
+import { type User } from "@prisma/client";
 
-type NewUserInput = Omit<User, "id" | "passwordHash" | "createdAt" | "updatedAt"> & {
-    password: string,
-    confirmPassword: string
-};
 type ExistingUserInput = Partial<Omit<User, "id" | "passwordHash" | "createdAt" | "updatedAt">>;
 
 const usersRouter = Router();
-const prisma = new PrismaClient();
 
 usersRouter.get("/:id", async (req, res) => {
     const userId = req.params.id;
 
     try {
-        const user = await prisma.user.findUnique({
-            where: {
-                id: userId
-            }
-        })
+        const user = await getUserById(userId)
 
         if (!user) {
             res.status(404).json({
@@ -43,62 +35,17 @@ usersRouter.get("/:id", async (req, res) => {
     }
 });
 
-usersRouter.post("/", async (req, res) => {
-    const { name, email, password, confirmPassword, phoneNumber, profilePictureURL } = req.body as NewUserInput;
-
-    if (!name || !email || !password || !confirmPassword) {
+usersRouter.put("/:id", check(['id', 'name', 'email', 'phoneNumber', 'profilePictureURL']), async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
         return res.status(400).json({
             success: false,
-            message: "All fields are required"
+            message: "Invalid input",
+            errors: errors.array()
         });
     }
 
-    if (password !== confirmPassword) {
-        return res.status(400).json({
-            success: false,
-            message: "Passwords do not match"
-        });
-    }
-
-    const passwordHash = bcrypt.hashSync(password, 10);
-
-    try {
-        const newUser = await prisma.user.create({
-            data: {
-                name,
-                email,
-                passwordHash,
-                phoneNumber,
-                profilePictureURL
-            }
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "User created successfully",
-            data: newUser
-        });
-    } catch (error) {
-        console.error(error);
-
-        if (error instanceof PrismaClientKnownRequestError) {
-            if (error.code === 'P2002' && (error.meta?.target as string[])?.includes('email')) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Email already exists"
-                });
-            }
-        }
-
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
-
-usersRouter.put("/:id", async (req, res) => {
-    const userId = req.params.id;
+    const userId = req.params?.id
     const { name, email, phoneNumber, profilePictureURL } = req.body as ExistingUserInput;
 
     try {
