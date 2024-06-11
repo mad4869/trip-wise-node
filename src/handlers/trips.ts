@@ -3,8 +3,8 @@ import type { Response } from "express";
 import type { Trip } from "@prisma/client";
 import type { AuthRequest } from "@/middleware/auth";
 
-type CreateTripInput = Omit<Trip, "id" | "createdAt" | "updatedAt">;
-type UpdateTripInput = Partial<Omit<CreateTripInput, 'userId'>> & { userId: string };
+type CreateTripInput = Omit<Trip, "id" | "userId" | "createdAt" | "updatedAt">;
+type UpdateTripInput = Partial<Omit<CreateTripInput, 'userId'>>
 
 export const getTrip = async (req: AuthRequest, res: Response) => {
     const tripId = req.params.id;
@@ -43,17 +43,52 @@ export const getTrip = async (req: AuthRequest, res: Response) => {
     }
 };
 
-export const createTrip = async (req: AuthRequest, res: Response) => {
-    const { userId, title, description, destination, startDate, endDate } = req.body as CreateTripInput;
+export const getTrips = async (req: AuthRequest, res: Response) => {
+    const loggedInUserId = req.auth?.id;
 
-    if (!userId || !title || !destination || !startDate || !endDate) {
-        return res.status(400).json({
+    if (!loggedInUserId) {
+        return res.status(401).json({
             success: false,
-            message: "All fields are required"
+            message: "Unauthorized user"
         });
     }
 
-    if (startDate > endDate) {
+    try {
+        const trips = await prisma.trip.findMany({
+            where: {
+                userId: loggedInUserId
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Trips successfully retrieved",
+            data: trips
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};
+
+export const createTrip = async (req: AuthRequest, res: Response) => {
+    const loggedInUserId = req.auth?.id;
+    const { title, description, destination, startDate, endDate } = req.body as CreateTripInput;
+
+    if (!loggedInUserId) {
+        return res.status(401).json({
+            success: false,
+            message: "Unauthorized user"
+        });
+    }
+
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+
+    if (startDateObj > endDateObj) {
         return res.status(400).json({
             success: false,
             message: "Start date must be before end date"
@@ -63,12 +98,12 @@ export const createTrip = async (req: AuthRequest, res: Response) => {
     try {
         const newTrip = await prisma.trip.create({
             data: {
-                userId,
+                userId: loggedInUserId,
                 title,
                 description,
                 destination,
-                startDate,
-                endDate
+                startDate: startDateObj,
+                endDate: endDateObj
             }
         });
 
@@ -88,9 +123,20 @@ export const createTrip = async (req: AuthRequest, res: Response) => {
 
 export const updateTrip = async (req: AuthRequest, res: Response) => {
     const tripId = req.params.id;
-    const { userId, title, description, destination, startDate, endDate } = req.body as UpdateTripInput;
+    const loggedInUserId = req.auth?.id;
+    const { title, description, destination, startDate, endDate } = req.body as UpdateTripInput;
 
-    if (startDate && endDate && startDate > endDate) {
+    let startDateObj: Date | undefined;
+    let endDateObj: Date | undefined;
+
+    if (startDate) {
+        startDateObj = new Date(startDate);
+    }
+    if (endDate) {
+        endDateObj = new Date(endDate);
+    }
+
+    if (startDateObj && endDateObj && startDateObj > endDateObj) {
         return res.status(400).json({
             success: false,
             message: "Start date must be before end date"
@@ -109,12 +155,12 @@ export const updateTrip = async (req: AuthRequest, res: Response) => {
                 success: false,
                 message: "Trip not found"
             });
-        } else if (trip.userId !== userId) {
+        } else if (trip.userId !== loggedInUserId) {
             return res.status(403).json({
                 success: false,
                 message: "User not authorized to update this trip"
             });
-        } else if ((startDate && startDate > trip.endDate) || (endDate && endDate < trip.startDate)) {
+        } else if ((startDateObj && startDateObj > trip.endDate) || (endDateObj && endDateObj < trip.startDate)) {
             return res.status(400).json({
                 success: false,
                 message: "Start date and end date must be within the original range"
@@ -129,8 +175,8 @@ export const updateTrip = async (req: AuthRequest, res: Response) => {
                 title: title || trip.title,
                 description: description || trip.description,
                 destination: destination || trip.destination,
-                startDate: startDate || trip.startDate,
-                endDate: endDate || trip.endDate
+                startDate: startDateObj || trip.startDate,
+                endDate: endDateObj || trip.endDate
             }
         });
 

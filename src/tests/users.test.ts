@@ -1,62 +1,47 @@
-import prisma from '@/db'
-import bcrypt from 'bcrypt';
 import request from 'supertest';
+import login, { type UserTest } from './utils/login';
 import type { User } from '@prisma/client';
 
 describe('User handling', () => {
-    let user: User;
-    let userToken: string;
-    const passwordHash = bcrypt.hashSync('passwordtest', 10);
+    const userTest: UserTest = {
+        name: 'User for User Test',
+        email: 'user@users.com',
+        phoneNumber: '1234567890',
+        profilePictureURL: 'https://example.com/image.jpg',
+    };
+    let createdUser: User;
+    let createdUserPassword: string;
+    let createdUserToken: string;
 
     beforeAll(async () => {
-        user = await prisma.user.create({
-            data: {
-                name: 'User Test',
-                email: 'emailtest@usertest.com',
-                passwordHash,
-                phoneNumber: '1234567890',
-                profilePictureURL: 'https://example.com/test.jpg',
-            },
-        });
-
-        const { body: { data: { token } } } = await request('http://localhost:3000').post('/auth/login').send({
-            email: user.email,
-            password: 'passwordtest',
-        }).expect(200);
-
-        userToken = token;
-    });
-
-    afterAll(async () => {
-        await prisma.user.delete({
-            where: {
-                id: user.id,
-            },
-        });
+        const { user, password, token } = await login(userTest);
+        createdUser = user;
+        createdUserPassword = password;
+        createdUserToken = token;
     });
 
     it('should get a user by ID', async () => {
         const response = await request('http://localhost:3000')
-            .get(`/api/users/${user.id}`)
-            .set('Authorization', `Bearer ${userToken}`)
+            .get(`/api/users/${createdUser.id}`)
+            .set('Authorization', `Bearer ${createdUserToken}`)
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
         expect(response.body.data).toEqual({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            phoneNumber: user.phoneNumber,
-            profilePictureURL: user.profilePictureURL,
-            createdAt: user.createdAt.toISOString(),
-            updatedAt: user.updatedAt.toISOString(),
+            id: createdUser.id,
+            name: createdUser.name,
+            email: createdUser.email,
+            phoneNumber: createdUser.phoneNumber,
+            profilePictureURL: createdUser.profilePictureURL,
+            createdAt: createdUser.createdAt.toISOString(),
+            updatedAt: createdUser.updatedAt.toISOString(),
         });
     });
 
     it('should update a user by ID', async () => {
         const response = await request('http://localhost:3000')
-            .put(`/api/users/${user.id}`)
-            .set('Authorization', `Bearer ${userToken}`)
+            .put(`/api/users/${createdUser.id}`)
+            .set('Authorization', `Bearer ${createdUserToken}`)
             .send({
                 name: 'User Test Updated',
                 email: 'emailtestupdated@usertestupdated.com',
@@ -67,20 +52,21 @@ describe('User handling', () => {
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
         expect(response.body.data).toEqual({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            phoneNumber: user.phoneNumber,
-            profilePictureURL: user.profilePictureURL,
-            createdAt: user.createdAt.toISOString(),
-            updatedAt: user.updatedAt.toISOString(),
+            id: createdUser.id,
+            name: createdUser.name,
+            email: createdUser.email,
+            phoneNumber: createdUser.phoneNumber,
+            profilePictureURL: createdUser.profilePictureURL,
+            createdAt: createdUser.createdAt.toISOString(),
+            updatedAt: createdUser.updatedAt.toISOString(),
         });
     });
 
     it('should delete a user by ID', async () => {
         const response = await request('http://localhost:3000')
-            .delete(`/api/users/${user.id}`)
-            .set('Authorization', `Bearer ${userToken}`);
+            .delete(`/api/users/${createdUser.id}`)
+            .set('Authorization', `Bearer ${createdUserToken}`)
+            .send({ password: createdUserPassword })
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
