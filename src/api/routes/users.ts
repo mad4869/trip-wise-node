@@ -1,127 +1,105 @@
-import prisma from "@/db";
 import { Router } from "express";
-import { check, validationResult } from 'express-validator';
-import { getUserById } from "@/handlers/users";
-import { type User } from "@prisma/client";
-
-type ExistingUserInput = Partial<Omit<User, "id" | "passwordHash" | "createdAt" | "updatedAt">>;
+import { body, param } from "express-validator";
+import { inputErrorMiddleware } from "@/middleware/errors";
+import { deleteUser, getUser, updateUser } from "@/handlers/users";
 
 const usersRouter = Router();
 
-usersRouter.get("/:id", async (req, res) => {
-    const userId = req.params.id;
+/**
+ * GET /users/:id
+ * Get a user by ID
+ * @param id - User ID
+ * @returns {Object} - Success message, user data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - User not found
+ * @throws {500} - Internal server error
+ * @example GET /users/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "User successfully retrieved",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "name": "John Doe",
+ *      "email": "johndoe@email.com",
+ *      "phoneNumber": "1234567890",
+ *      "profilePictureURL": "https://example.com/profile.jpg",
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-01T00:00:00.000Z"
+ *  }
+ * }
+ */
 
-    try {
-        const user = await getUserById(userId)
+usersRouter.get("/:id",
+    param('id').isUUID().withMessage("Invalid user ID").isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
+    inputErrorMiddleware,
+    getUser
+);
 
-        if (!user) {
-            res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        } else {
-            res.status(200).json({
-                success: true,
-                message: `User with ID ${userId} is found`,
-                data: user
-            });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+/**
+ * PUT /users/:id
+ * Update a user by ID
+ * @param id - User ID
+ * @body name - User name
+ * @body email - User email
+ * @body phoneNumber - User phone number
+ * @body profilePictureURL - User profile picture URL
+ * @returns {Object} - Success message, updated user data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - User not found
+ * @throws {500} - Internal server error
+ * @example PUT /users/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "User successfully updated",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "name": "Jane Doe",
+ *      "email": "janedoe@email.com",
+ *      "phoneNumber": "0987654321",
+ *      "profilePictureURL": "https://example.com/janedoe.jpg",
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-02T00:00:00.000Z"
+ *  }
+ * }
+ */
 
-usersRouter.put("/:id", check(['id', 'name', 'email', 'phoneNumber', 'profilePictureURL']), async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid input",
-            errors: errors.array()
-        });
-    }
+usersRouter.put("/:id",
+    param('id').isUUID().withMessage("Invalid user ID").isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
+    body('name').isString().withMessage("Name must be a string").optional(),
+    body('email').isEmail().withMessage("Email must be a valid address").optional(),
+    body('phoneNumber').isString().withMessage("Phone number must be a string").optional(),
+    body('profilePictureURL').isString().withMessage("Profile picture URL must be a string").optional(),
+    inputErrorMiddleware,
+    updateUser
+);
 
-    const userId = req.params?.id
-    const { name, email, phoneNumber, profilePictureURL } = req.body as ExistingUserInput;
+/**
+ * DELETE /users/:id
+ * Delete a user by ID
+ * @param id - User ID
+ * @body password - User password
+ * @returns {Object} - Success message
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - User not found
+ * @throws {500} - Internal server error
+ * @example DELETE /users/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "User successfully deleted"
+ * }
+ */
 
-    try {
-        const user = await prisma.user.findUnique({
-            where: {
-                id: userId
-            }
-        });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-
-        await prisma.user.update({
-            where: {
-                id: userId
-            },
-            data: {
-                name: name || user.name,
-                email: email || user.email,
-                phoneNumber: phoneNumber || user.phoneNumber,
-                profilePictureURL: profilePictureURL || user.profilePictureURL
-            }
-        });
-
-        res.status(200).json({
-            success: true,
-            message: `User with ID ${userId} is updated`,
-            data: user
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
-
-usersRouter.delete("/:id", async (req, res) => {
-    const userId = req.params.id;
-
-    try {
-        const user = await prisma.user.findUnique({
-            where: {
-                id: userId
-            }
-        });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-
-        await prisma.user.delete({
-            where: {
-                id: userId
-            }
-        });
-
-        res.status(200).json({
-            success: true,
-            message: `User with ID ${userId} is deleted`
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+usersRouter.delete("/:id",
+    param('id').isUUID().withMessage("Invalid user ID").isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
+    body('password').isString().withMessage("Password must be a string"),
+    inputErrorMiddleware,
+    deleteUser
+);
 
 export default usersRouter;

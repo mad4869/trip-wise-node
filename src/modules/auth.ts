@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Router } from "express";
-import { getUserByEmail, registerUser } from '../handlers/users';
-import type { User } from '@prisma/client';
+import { getUserByEmail, registerUser } from '@/handlers/auth';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import type { User } from '@prisma/client';
 
 type LoginInput = { email: string, password: string };
 type RegisterInput = { name: string, email: string, password: string, confirmPassword: string };
@@ -11,7 +11,11 @@ type RegisterInput = { name: string, email: string, password: string, confirmPas
 const authRouter = Router();
 
 const createToken = (user: User) => {
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET as string);
+    const token = jwt.sign(
+        { id: user.id, email: user.email },
+        process.env.JWT_SECRET as string,
+        { algorithm: "HS256", expiresIn: "1h" }
+    );
 
     return token;
 };
@@ -37,7 +41,7 @@ authRouter.post("/register", async (req, res) => {
         });
     }
 
-    const passwordHash = bcrypt.hashSync(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     try {
         const newUser = await registerUser(name, email, passwordHash);
