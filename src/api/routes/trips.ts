@@ -1,218 +1,178 @@
-import prisma from "@/db";
 import { Router } from "express";
-import { type Trip } from "@prisma/client";
-
-type UserQuery = { userId: string }
-type NewTripInput = Omit<Trip, "id" | "createdAt" | "updatedAt">;
-type ExistingTripInput = Partial<Omit<NewTripInput, 'userId'>> & { userId: string };
+import { body, param } from "express-validator";
+import { inputErrorMiddleware } from "@/middleware/errors";
+import { createTrip, deleteTrip, getTrip, updateTrip } from "@/handlers/trips";
 
 const tripsRouter = Router();
 
-tripsRouter.get("/:id", async (req, res) => {
-    const tripId = req.params.id;
-    const { userId } = req.body as UserQuery;
+/**
+ * GET /trips/:id
+ * Get a trip by ID
+ * @param id - Trip ID
+ * @returns {Object} - Success message, trip data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - Trip not found
+ * @throws {500} - Internal server error
+ * @example GET /trips/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "Trip successfully retrieved",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "name": "Trip Name",
+ *      "description": "Trip Description",
+ *      "destination": "Trip Destination",
+ *      "startDate": "2021-09-01T00:00:00.000Z",
+ *      "endDate": "2021-09-10T00:00:00.000Z",
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-01T00:00:00.000Z"
+ * }
+ */
 
-    if (!userId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID is required"
-        });
-    }
+tripsRouter.get("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid trip ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid trip ID"),
+    inputErrorMiddleware,
+    getTrip
+);
 
-    try {
-        const trip = await prisma.trip.findUnique({
-            where: {
-                id: tripId
-            }
-        });
+/**
+ * POST /trips
+ * Create a new trip
+ * @body userId - User ID
+ * @body title - Trip title
+ * @body description - Trip description
+ * @body destination - Trip destination
+ * @body startDate - Trip start date
+ * @body endDate - Trip end date
+ * @returns {Object} - Success message, created trip data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {500} - Internal server error
+ * @example POST /trips
+ * {
+ *  success: true,
+ *  message: "Trip successfully created",
+ *  data: {
+ *      id: "123e4567-e89b-12d3-a456-426614174000",
+ *      userId: "123e4567-e89b-12d3-a456-426614174000",
+ *      title: "Trip Name",
+ *      description: "Trip Description",
+ *      destination: "Trip Destination",
+ *      startDate: "2021-09-01T00:00:00.000Z",
+ *      endDate: "2021-09-10T00:00:00.000Z",
+ *      createdAt: "2021-09-01T00:00:00.000Z",
+ *      updatedAt: "2021-09-01T00:00:00.000Z"
+ * }
+ */
 
-        if (!trip) {
-            res.status(404).json({
-                success: false,
-                message: "Trip not found"
-            });
-        } else if (trip.userId !== userId) {
-            res.status(403).json({
-                success: false,
-                message: "User not authorized to view this trip"
-            })
-        } else {
-            res.status(200).json({
-                success: true,
-                message: `Trip with ID ${tripId} is found`,
-                data: trip
-            });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+tripsRouter.post("/",
+    body('userId')
+        .isUUID().withMessage("Invalid user ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
+    body('title')
+        .isString().withMessage("Title must be string")
+        .isLength({ min: 1 }).withMessage("Title is required"),
+    body('description')
+        .isString().withMessage("Description must be string")
+        .optional(),
+    body('destination')
+        .isString().withMessage("Destination must be string")
+        .isLength({ min: 1 }).withMessage("Destination is required"),
+    body('startDate')
+        .isISO8601().withMessage("Start date must be a valid date")
+        .isBefore(body('endDate').toString()).withMessage("Start date must be before end date"),
+    body('endDate')
+        .isISO8601().withMessage("End date must be a valid date"),
+    inputErrorMiddleware,
+    createTrip
+);
 
-tripsRouter.post("/", async (req, res) => {
-    const { userId, title, description, destination, startDate, endDate } = req.body as NewTripInput
+/**
+ * PUT /trips/:id
+ * Update a trip by ID
+ * @param id - Trip ID
+ * @body userId - User ID
+ * @body title - Trip title
+ * @body description - Trip description
+ * @body destination - Trip destination
+ * @body startDate - Trip start date
+ * @body endDate - Trip end date
+ * @returns {Object} - Success message, updated trip data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - Trip not found
+ * @throws {500} - Internal server error
+ * @example PUT /trips/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  success: true,
+ *  message: "Trip successfully updated",
+ *  data: {
+ *      id: "123e4567-e89b-12d3-a456-426614174000",
+ *      userId: "123e4567-e89b-12d3-a456-426614174000",
+ *      title: "Trip Name",
+ *      description: "Trip Description",
+ *      destination: "Trip Destination",
+ *      startDate: "2021-09-01T00:00:00.000Z",
+ *      endDate: "2021-09-10T00:00:00.000Z",
+ *      createdAt: "2021-09-01T00:00:00.000Z",
+ *      updatedAt: "2021-09-01T00:00:00.000Z"
+ * }
+ */
 
-    if (!userId || !title || !destination || !startDate || !endDate) {
-        return res.status(400).json({
-            success: false,
-            message: "All fields are required"
-        });
-    }
+tripsRouter.put("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid trip ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid trip ID"),
+    body('userId')
+        .isUUID().withMessage("Invalid user ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
+    body('title')
+        .isString().withMessage("Title must be string")
+        .optional(),
+    body('description')
+        .isString().withMessage("Description must be string")
+        .optional(),
+    body('destination')
+        .isString().withMessage("Destination must be string")
+        .optional(),
+    body('startDate')
+        .isISO8601().withMessage("Start date must be a valid date")
+        .optional(),
+    body('endDate')
+        .isISO8601().withMessage("End date must be a valid date")
+        .optional(),
+    inputErrorMiddleware,
+    updateTrip
+);
 
-    if (startDate > endDate) {
-        return res.status(400).json({
-            success: false,
-            message: "Start date must be before end date"
-        });
-    }
+/**
+ * DELETE /trips/:id
+ * Delete a trip by ID
+ * @param id - Trip ID
+ * @returns {Object} - Success message
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - Trip not found
+ * @throws {500} - Internal server error
+ * @example DELETE /trips/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  success: true,
+ *  message: "Trip successfully deleted"
+ * }
+ */
 
-    try {
-        const newTrip = await prisma.trip.create({
-            data: {
-                userId,
-                title,
-                description,
-                destination,
-                startDate,
-                endDate
-            }
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "Trip created successfully",
-            data: newTrip
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
-
-tripsRouter.put("/:id", async (req, res) => {
-    const tripId = req.params.id;
-    const { userId, title, description, destination, startDate, endDate } = req.body as ExistingTripInput;
-
-    if (!userId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID is required"
-        });
-    }
-
-    if (startDate && endDate && startDate > endDate) {
-        return res.status(400).json({
-            success: false,
-            message: "Start date must be before end date"
-        });
-    }
-
-    try {
-        const trip = await prisma.trip.findUnique({
-            where: {
-                id: tripId
-            }
-        });
-
-        if (!trip) {
-            return res.status(404).json({
-                success: false,
-                message: "Trip not found"
-            });
-        } else if (trip.userId !== userId) {
-            return res.status(403).json({
-                success: false,
-                message: "User not authorized to update this trip"
-            });
-        } else if ((startDate && startDate > trip.endDate) || (endDate && endDate < trip.startDate)) {
-            return res.status(400).json({
-                success: false,
-                message: "Start date and end date must be within the original range"
-            });
-        }
-
-        await prisma.trip.update({
-            where: {
-                id: tripId
-            },
-            data: {
-                title: title || trip.title,
-                description: description || trip.description,
-                destination: destination || trip.destination,
-                startDate: startDate || trip.startDate,
-                endDate: endDate || trip.endDate
-            }
-        });
-
-        res.status(200).json({
-            success: true,
-            message: "Trip updated successfully",
-            data: trip
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
-
-tripsRouter.delete("/:id", async (req, res) => {
-    const tripId = req.params.id;
-
-    const { userId } = req.body as UserQuery;
-
-    if (!userId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID is required"
-        });
-    }
-
-    try {
-        const trip = await prisma.trip.findUnique({
-            where: {
-                id: tripId
-            }
-        });
-
-        if (!trip) {
-            return res.status(404).json({
-                success: false,
-                message: "Trip not found"
-            });
-        } else if (trip.userId !== userId) {
-            return res.status(403).json({
-                success: false,
-                message: "User not authorized to delete this trip"
-            });
-        }
-
-        await prisma.trip.delete({
-            where: {
-                id: tripId
-            }
-        });
-
-        res.status(200).json({
-            success: true,
-            message: "Trip deleted successfully",
-            data: trip
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+tripsRouter.delete("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid trip ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid trip ID"),
+    inputErrorMiddleware,
+    deleteTrip
+);
 
 export default tripsRouter;
