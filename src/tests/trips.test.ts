@@ -1,7 +1,8 @@
 import request from 'supertest';
-import login, { type UserTest } from './utils/login';
-import cleanup from './utils/cleanup';
+import login, { type UserTest } from './utils/loginTest';
+import cleanup from './utils/cleanupTest';
 import type { Trip, User } from '@prisma/client'
+import type { CreateTripInput, UpdateTripInput } from '@/handlers/trips';
 
 describe('Trips handling', () => {
     const userTest: UserTest = {
@@ -34,7 +35,7 @@ describe('Trips handling', () => {
                 destination: 'Test Destination',
                 startDate: '2022-12-01',
                 endDate: '2022-12-10',
-            });
+            } satisfies CreateTripInput);
 
         trip = response.body.data;
 
@@ -50,7 +51,7 @@ describe('Trips handling', () => {
             endDate: trip.endDate,
             createdAt: trip.createdAt,
             updatedAt: trip.updatedAt,
-        });
+        } satisfies Trip);
     });
 
     it('should get all trips for a logged in user', async () => {
@@ -80,7 +81,7 @@ describe('Trips handling', () => {
             endDate: trip.endDate,
             createdAt: trip.createdAt,
             updatedAt: trip.updatedAt,
-        });
+        } satisfies Trip);
     });
 
     it('should update a trip by id for a logged in user', async () => {
@@ -93,7 +94,7 @@ describe('Trips handling', () => {
                 destination: 'Test Destination Updated',
                 startDate: '2022-12-01',
                 endDate: '2022-12-10',
-            });
+            } satisfies UpdateTripInput);
 
         trip = response.body.data;
 
@@ -109,7 +110,7 @@ describe('Trips handling', () => {
             endDate: trip.endDate,
             createdAt: trip.createdAt,
             updatedAt: trip.updatedAt,
-        });
+        } satisfies Trip);
     });
 
     it('should delete a trip by id for a logged in user', async () => {

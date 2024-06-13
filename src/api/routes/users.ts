@@ -32,7 +32,9 @@ const usersRouter = Router();
  */
 
 usersRouter.get("/:id",
-    param('id').isUUID().withMessage("Invalid user ID").isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
+    param('id')
+        .isUUID().withMessage("Invalid user ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
     inputErrorMiddleware,
     getUser
 );
@@ -68,11 +70,21 @@ usersRouter.get("/:id",
  */
 
 usersRouter.put("/:id",
-    param('id').isUUID().withMessage("Invalid user ID").isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
-    body('name').isString().withMessage("Name must be a string").optional(),
-    body('email').isEmail().withMessage("Email must be a valid address").optional(),
-    body('phoneNumber').isString().withMessage("Phone number must be a string").optional(),
-    body('profilePictureURL').isString().withMessage("Profile picture URL must be a string").optional(),
+    param('id')
+        .isUUID().withMessage("Invalid user ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
+    body('name')
+        .isString().withMessage("Name must be a string")
+        .optional(),
+    body('email')
+        .isEmail().withMessage("Email must be a valid address")
+        .optional(),
+    body('phoneNumber')
+        .isString().withMessage("Phone number must be a string")
+        .optional(),
+    body('profilePictureURL')
+        .isString().withMessage("Profile picture URL must be a string")
+        .optional(),
     inputErrorMiddleware,
     updateUser
 );
@@ -96,10 +108,16 @@ usersRouter.put("/:id",
  */
 
 usersRouter.delete("/:id",
-    param('id').isUUID().withMessage("Invalid user ID").isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
-    body('password').isString().withMessage("Password must be a string"),
+    param('id')
+        .isUUID().withMessage("Invalid user ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid user ID"),
+    body('password')
+        .isString().withMessage("Password must be a string")
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters long"),
     inputErrorMiddleware,
     deleteUser
 );
+
+
 
 export default usersRouter;

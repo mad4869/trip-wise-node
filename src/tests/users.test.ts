@@ -1,5 +1,5 @@
 import request from 'supertest';
-import login, { type UserTest } from './utils/login';
+import login, { type UserTest } from './utils/loginTest';
 import type { User } from '@prisma/client';
 
 describe('User handling', () => {

@@ -1,211 +1,139 @@
-import prisma from '@/db'
 import { Router } from "express";
-import { type Itinerary } from "@prisma/client";
-
-type UserQuery = { userId: string, tripId: string }
-type NewItineraryInput = Omit<Itinerary, "id" | "createdAt" | "updatedAt"> & { userId: string }
-type ExistingItineraryInput = Partial<Omit<NewItineraryInput, 'userId' | 'tripId'>> & { userId: string, tripId: string }
+import { param } from "express-validator";
+import { createItinerary, deleteItinerary, getItineraries, getItinerary, updateItinerary } from "@/handlers/itineraries";
 
 const itinerariesRouter = Router();
 
-itinerariesRouter.get("/:id", async (req, res) => {
-    const itineraryId = req.params.id;
-    const { userId, tripId } = req.body as UserQuery;
+/**
+ * GET /itineraries/:id
+ * Get an itinerary by ID
+ * @param id - Itinerary ID
+ * @returns {Object} - Success message, itinerary data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - Itinerary not found
+ * @throws {500} - Internal server error
+ * @example GET /itineraries/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "Itinerary successfully retrieved",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "tripId": "123e4567-e89b-12d3-a456-426614174000",
+ *      "date": "2021-09-01T00:00:00.000Z",
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-01T00:00:00.000Z"
+ * }
+ */
 
-    if (!userId || !tripId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID and Trip ID are required"
-        });
-    }
+itinerariesRouter.get("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid itinerary ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid itinerary ID"),
+    getItinerary
+);
 
-    try {
-        const itinerary = await prisma.itinerary.findUnique({
-            where: {
-                id: itineraryId
-            },
-            include: {
-                trip: {
-                    select: {
-                        userId: true,
-                    }
-                }
-            }
-        });
+/**
+ * GET /itineraries/trips/:tripId
+ * Get all itineraries for a trip
+ * @param tripId - Trip ID
+ * @returns {Object} - Success message, itineraries data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - Itineraries not found
+ * @throws {500} - Internal server error
+ * @example GET /itineraries/trips/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "Itineraries successfully retrieved",
+ *  "data": [
+ *      {
+ *          "id": "123e4567-e89b-12d3-a456-426614174000",
+ *          "tripId": "123e4567-e89b-12d3-a456-426614174000",
+ *          "date": "2021-09-01T00:00:00.000Z",
+ *          "createdAt": "2021-09-01T00:00:00.000Z",
+ *          "updatedAt": "2021-09-01T00:00:00.000Z"
+ *      }
+ *  ]
+ * }
+ */
 
-        if (!itinerary) {
-            res.status(404).json({
-                success: false,
-                message: "Itinerary not found"
-            });
-        } else if (itinerary.trip.userId !== userId || itinerary.tripId !== tripId) {
-            res.status(403).json({
-                success: false,
-                message: "User not authorized to view this itinerary"
-            })
-        } else {
-            res.status(200).json({
-                success: true,
-                message: `Itinerary with ID ${itineraryId} is found`,
-                data: itinerary
-            });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+itinerariesRouter.get("/trips/:tripId", getItineraries);
 
-itinerariesRouter.post("/", async (req, res) => {
-    const { userId, tripId, date } = req.body as NewItineraryInput
+/**
+ * POST /itineraries
+ * Create a new itinerary
+ * @body tripId - Trip ID
+ * @body date - Itinerary date
+ * @returns {Object} - Success message, new itinerary data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - Trip not found
+ * @throws {500} - Internal server error
+ * @example POST /itineraries
+ * {
+ *  "success": true,
+ *  "message": "Itinerary successfully created",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "tripId": "123e4567-e89b-12d3-a456-426614174000",
+ *      "date": "2021-09-01T00:00:00.000Z",
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-01T00:00:00.000Z"
+ * }
+ */
 
-    if (!userId || !tripId) {
-        return res.status(400).json({
-            success: false,
-            message: "All fields are required"
-        });
-    }
+itinerariesRouter.post("/", createItinerary);
 
-    try {
-        const newItinerary = await prisma.itinerary.create({
-            data: {
-                tripId,
-                date
-            }
-        });
+/**
+ * PUT /itineraries/:id
+ * Update an itinerary by ID
+ * @param id - Itinerary ID
+ * @body tripId - Trip ID
+ * @body date - Itinerary date
+ * @returns {Object} - Success message, updated itinerary data
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - Itinerary not found
+ * @throws {500} - Internal server error
+ * @example PUT /itineraries/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "Itinerary successfully updated",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "tripId": "123e4567-e89b-12d3-a456-426614174000",
+ *      "date": "2021-09-01T00:00:00.000Z",
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-01T00:00:00.000Z"
+ * }
+ */
 
-        res.status(201).json({
-            success: true,
-            message: "Itinerary created successfully",
-            data: newItinerary
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+itinerariesRouter.put("/:id", updateItinerary);
 
-itinerariesRouter.put("/:id", async (req, res) => {
-    const itineraryId = req.params.id;
-    const { userId, tripId, date } = req.body as ExistingItineraryInput;
+/**
+ * DELETE /itineraries/:id
+ * Delete an itinerary by ID
+ * @param id - Itinerary ID
+ * @returns {Object} - Success message
+ * @throws {400} - Invalid input
+ * @throws {401} - Unauthorized user
+ * @throws {403} - Forbidden user
+ * @throws {404} - Itinerary not found
+ * @throws {500} - Internal server error
+ * @example DELETE /itineraries/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "Itinerary successfully deleted"
+ * }
+ */
 
-    if (!userId || !tripId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID and Trip ID are required"
-        });
-    }
+itinerariesRouter.delete("/:id", deleteItinerary);
 
-    try {
-        const itinerary = await prisma.itinerary.findUnique({
-            where: {
-                id: itineraryId
-            },
-            include: {
-                trip: {
-                    select: {
-                        userId: true
-                    }
-                }
-            }
-        });
 
-        if (!itinerary) {
-            return res.status(404).json({
-                success: false,
-                message: "Itinerary not found"
-            });
-        } else if (itinerary.trip.userId !== userId || itinerary.tripId !== tripId) {
-            return res.status(403).json({
-                success: false,
-                message: "User not authorized to update this itinerary"
-            });
-        }
-
-        await prisma.itinerary.update({
-            where: {
-                id: itineraryId
-            },
-            data: {
-                date: date || itinerary.date
-            }
-        });
-
-        res.status(200).json({
-            success: true,
-            message: `Itinerary with ID ${itineraryId} is updated`,
-            data: itinerary
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
-
-itinerariesRouter.delete("/:id", async (req, res) => {
-    const itineraryId = req.params.id;
-    const { userId, tripId } = req.body as UserQuery;
-
-    if (!userId || !tripId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID and Trip ID are required"
-        });
-    }
-
-    try {
-        const itinerary = await prisma.itinerary.findUnique({
-            where: {
-                id: itineraryId
-            },
-            include: {
-                trip: {
-                    select: {
-                        userId: true
-                    }
-                }
-            }
-        });
-
-        if (!itinerary) {
-            return res.status(404).json({
-                success: false,
-                message: "Itinerary not found"
-            });
-        } else if (itinerary.trip.userId !== userId || itinerary.tripId !== tripId) {
-            return res.status(403).json({
-                success: false,
-                message: "User not authorized to delete this itinerary"
-            });
-        }
-
-        await prisma.itinerary.delete({
-            where: {
-                id: itineraryId
-            }
-        });
-
-        res.status(200).json({
-            success: true,
-            message: "Itinerary deleted successfully",
-            data: itinerary
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
 
 export default itinerariesRouter;

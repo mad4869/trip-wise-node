@@ -3,8 +3,10 @@ import type { Response } from "express";
 import type { Trip } from "@prisma/client";
 import type { AuthRequest } from "@/middleware/auth";
 
-type CreateTripInput = Omit<Trip, "id" | "userId" | "createdAt" | "updatedAt">;
-type UpdateTripInput = Partial<Omit<CreateTripInput, 'userId'>>
+export type CreateTripInput = {
+    [K in keyof Omit<Trip, 'id' | 'userId' | 'createdAt' | 'updatedAt'>]: string
+}
+export type UpdateTripInput = Partial<Omit<CreateTripInput, 'userId'>>
 
 export const getTrip = async (req: AuthRequest, res: Response) => {
     const tripId = req.params.id;
@@ -30,7 +32,7 @@ export const getTrip = async (req: AuthRequest, res: Response) => {
         } else {
             res.status(200).json({
                 success: true,
-                message: `Trip with ID ${tripId} is found`,
+                message: "Trip successfully retrieved",
                 data: trip
             });
         }
@@ -59,6 +61,13 @@ export const getTrips = async (req: AuthRequest, res: Response) => {
                 userId: loggedInUserId
             }
         });
+
+        if (trips.some(trip => trip.userId !== loggedInUserId)) {
+            res.status(403).json({
+                success: false,
+                message: "User not authorized to view these trips"
+            });
+        }
 
         res.status(200).json({
             success: true,
@@ -109,7 +118,7 @@ export const createTrip = async (req: AuthRequest, res: Response) => {
 
         res.status(201).json({
             success: true,
-            message: "Trip created successfully",
+            message: "Trip successfully created",
             data: newTrip
         });
     } catch (error) {
@@ -182,7 +191,7 @@ export const updateTrip = async (req: AuthRequest, res: Response) => {
 
         res.status(200).json({
             success: true,
-            message: "Trip updated successfully",
+            message: "Trip successfully updated",
             data: trip
         });
     } catch (error) {
@@ -225,8 +234,7 @@ export const deleteTrip = async (req: AuthRequest, res: Response) => {
 
         res.status(200).json({
             success: true,
-            message: "Trip deleted successfully",
-            data: trip
+            message: "Trip successfully deleted",
         });
     } catch (error) {
         console.error(error);
