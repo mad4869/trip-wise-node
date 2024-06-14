@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { param } from "express-validator";
+import { body, param } from "express-validator";
+import { inputErrorMiddleware } from "@/middleware/errors";
 import { createItinerary, deleteItinerary, getItineraries, getItinerary, updateItinerary } from "@/handlers/itineraries";
 
 const itinerariesRouter = Router();
@@ -31,6 +32,7 @@ itinerariesRouter.get("/:id",
     param('id')
         .isUUID().withMessage("Invalid itinerary ID")
         .isLength({ min: 36, max: 36 }).withMessage("Invalid itinerary ID"),
+    inputErrorMiddleware,
     getItinerary
 );
 
@@ -60,7 +62,13 @@ itinerariesRouter.get("/:id",
  * }
  */
 
-itinerariesRouter.get("/trips/:tripId", getItineraries);
+itinerariesRouter.get("/trips/:tripId",
+    param('tripId')
+        .isUUID().withMessage("Invalid trip ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid trip ID"),
+    inputErrorMiddleware,
+    getItineraries
+);
 
 /**
  * POST /itineraries
@@ -86,7 +94,15 @@ itinerariesRouter.get("/trips/:tripId", getItineraries);
  * }
  */
 
-itinerariesRouter.post("/", createItinerary);
+itinerariesRouter.post("/",
+    body('tripId')
+        .isUUID().withMessage("Invalid trip ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid trip ID"),
+    body('date')
+        .isISO8601().withMessage("Invalid date format"),
+    inputErrorMiddleware,
+    createItinerary
+);
 
 /**
  * PUT /itineraries/:id
@@ -113,7 +129,18 @@ itinerariesRouter.post("/", createItinerary);
  * }
  */
 
-itinerariesRouter.put("/:id", updateItinerary);
+itinerariesRouter.put("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid itinerary ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid itinerary ID"),
+    body('tripId')
+        .isUUID().withMessage("Invalid trip ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid trip ID"),
+    body('date')
+        .isISO8601().withMessage("Invalid date format"),
+    inputErrorMiddleware,
+    updateItinerary
+);
 
 /**
  * DELETE /itineraries/:id
@@ -132,7 +159,13 @@ itinerariesRouter.put("/:id", updateItinerary);
  * }
  */
 
-itinerariesRouter.delete("/:id", deleteItinerary);
+itinerariesRouter.delete("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid itinerary ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid itinerary ID"),
+    inputErrorMiddleware,
+    deleteItinerary
+);
 
 
 

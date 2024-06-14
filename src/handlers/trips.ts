@@ -135,15 +135,8 @@ export const updateTrip = async (req: AuthRequest, res: Response) => {
     const loggedInUserId = req.auth?.id;
     const { title, description, destination, startDate, endDate } = req.body as UpdateTripInput;
 
-    let startDateObj: Date | undefined;
-    let endDateObj: Date | undefined;
-
-    if (startDate) {
-        startDateObj = new Date(startDate);
-    }
-    if (endDate) {
-        endDateObj = new Date(endDate);
-    }
+    const startDateObj = startDate ? new Date(startDate) : undefined;
+    const endDateObj = endDate ? new Date(endDate) : undefined;
 
     if (startDateObj && endDateObj && startDateObj > endDateObj) {
         return res.status(400).json({

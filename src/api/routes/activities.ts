@@ -1,14 +1,6 @@
-import prisma from '@/db';
 import { Router } from "express";
-import { type Activity } from "@prisma/client";
-
-type UserQuery = { userId: string, tripId: string, itineraryId: string }
-type NewActivityInput = Omit<Activity, "id" | "createdAt" | "updatedAt"> & { userId: string, tripId: string }
-type ExistingActivityInput = Partial<Omit<NewActivityInput, 'userId' | 'tripId' | 'itineraryId'>> & {
-    userId: string,
-    tripId: string,
-    itineraryId: string
-}
+import { body, param } from "express-validator";
+import { createActivity, deleteActivity, getActivities, getActivity, updateActivity } from '@/handlers/activities';
 
 const activitiesRouter = Router();
 
@@ -16,407 +8,226 @@ const activitiesRouter = Router();
  * GET /activities/:id
  * Get an activity by ID
  * @param id - Activity ID
- * @property {string} userId - User ID
- * @property {string} tripId - Trip ID
- * @property {string} itineraryId - Itinerary ID
- * @returns {Activity} - Activity object
+ * @returns {Object} - Success message, activity data
+ * @throws {400} - Invalid input
  * @throws {404} - Activity not found
- * @throws {403} - User not authorized to view this activity
- * @throws {500} - Internal server error
- * @example
- * GET /activities/1
+ * @example GET /activities/123e4567-e89b-12d3-a456-426614174000
  * {
- *    "success": true,
- *    "message": "Activity with ID 1 is found",
- *    "data": {
- *       "id": 1,
- *       "name": "Visit the Eiffel Tower",
- *       "location": "Paris, France",
- *       "date": "2022-01-01",
- *       "time": "09:00:00",
- *       "notes": "Don't forget to bring a camera",
- *       "itineraryId": 1,
- *       "createdAt": "2021-09-01T12:00:00.000Z",
- *       "updatedAt": "2021-09-01T12:00:00.000Z"
+ *  "success": true,
+ *  "message": "Activity successfully retrieved",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "itineraryId": "123e4567-e89b-12d3-a456-426614174000",
+ *      "title": "Activity Title",
+ *      "description": "Activity Description",
+ *      "location": "Activity Location",
+ *      "startTime": "2021-09-01T00:00:00.000Z",
+ *      "endTime": "2021-09-01T00:00:00.000Z",
+ *      "category": "Sightseeing",
+ *      "details": {
+ *          "key": "value"
+ *      },
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-01T00:00:00.000Z"
+ *      }
+ *  }
+ */
+
+activitiesRouter.get("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid activity ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid activity ID"),
+    getActivity
+);
+
+/**
+ * GET /activities/itineraries/:itineraryId
+ * Get all activities for an itinerary
+ * @param itineraryId - Itinerary ID
+ * @returns {Object} - Success message, activities data
+ * @throws {400} - Invalid input
+ * @throws {404} - Activities not found
+ * @example GET /activities/itineraries/123e4567-e89b-12d3-a456-426614174000
+ * {
+ *  "success": true,
+ *  "message": "Activities successfully retrieved",
+ *  "data": [
+ *      {
+ *          "id": "123e4567-e89b-12d3-a456-426614174000",
+ *          "itineraryId": "123e4567-e89
+ *          "title": "Activity Title",
+ *          "description": "Activity Description",
+ *          "location": "Activity Location",
+ *          "startTime": "2021-09-01T00:00:00.000Z",
+ *          "endTime": "2021-09-01T00:00:00.000Z",
+ *          "category": "Sightseeing",
+ *          "details": {
+ *              "key": "value"
+ *          },
+ *          "createdAt": "2021-09-01T00:00:00.000Z",
+ *          "updatedAt": "2021-09-01T00:00:00.000Z"
+ *      }
+ *  ]
  * }
  */
 
-activitiesRouter.get("/:id", async (req, res) => {
-    const activityId = req.params.id;
-    const { userId, tripId, itineraryId } = req.body as UserQuery;
-
-    if (!userId || !tripId || !itineraryId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID, Trip ID, and Itinerary ID are required"
-        });
-    }
-
-    try {
-        const activity = await prisma.activity.findUnique({
-            where: {
-                id: activityId
-            },
-            include: {
-                itinerary: {
-                    select: {
-                        trip: {
-                            select: {
-                                userId: true
-                            }
-                        },
-                        tripId: true
-                    }
-                }
-            }
-        });
-
-        if (!activity) {
-            res.status(404).json({
-                success: false,
-                message: "Activity not found"
-            });
-        } else if (
-            activity.itinerary.trip.userId !== userId ||
-            activity.itinerary.tripId !== tripId ||
-            activity.itineraryId !== itineraryId
-        ) {
-            res.status(403).json({
-                success: false,
-                message: "User not authorized to view this activity"
-            })
-        } else {
-            res.status(200).json({
-                success: true,
-                message: `Activity with ID ${activityId} is found`,
-                data: activity
-            });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+activitiesRouter.get('/itineraries/:itineraryId',
+    param('itineraryId')
+        .isUUID().withMessage("Invalid itinerary ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid itinerary ID"),
+    getActivities
+);
 
 /**
  * POST /activities
  * Create a new activity
- * @property {string} userId - User ID
- * @property {string} tripId - Trip ID
- * @property {string} itineraryId - Itinerary ID
- * @property {string} title - Activity title
- * @property {string} description - Activity description
- * @property {string} location - Activity location
- * @property {string} startTime - Activity start time
- * @property {string} endTime - Activity end time
- * @property {string} category - Activity category
- * @property {string} detail - Activity detail
- * @returns {Activity} - New activity object
- * @throws {400} - All fields are required
- * @throws {400} - Start time cannot be later than end time
+ * @body itineraryId - Itinerary ID
+ * @body title - Activity title
+ * @body description - Activity description
+ * @body location - Activity location
+ * @body startTime - Activity start time
+ * @body endTime - Activity end time
+ * @body category - Activity category
+ * @body details - Activity details
+ * @returns {Object} - Success message, activity data
+ * @throws {400} - Invalid input
  * @throws {500} - Internal server error
- * @example
- * POST /activities
+ * @example POST /activities
  * {
- *   "userId": "1",
- *   "tripId": "1",
- *   "itineraryId": "1",
- *   "title": "Visit the Eiffel Tower",
- *   "description": "Visit the Eiffel Tower",
- *   "location": "Paris, France",
- *   "startTime": "09:00:00",
- *   "endTime": "11:00:00",
- *   "category": "Sightseeing",
- *   "detail": "Don't forget to bring a camera"
- * }
+ *  "success": true,
+ *  "message": "Activity successfully created",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "itineraryId": "123e4567-e89b-12d3-a456-426614174000",
+ *      "title": "Activity Title",
+ *      "description": "Activity Description",
+ *      "location": "Activity Location",
+ *      "startTime": "2021-09-01T00:00:00.000Z",
+ *      "endTime": "2021-09-01T00:00:00.000Z",
+ *      "category": "Sightseeing",
+ *      "details": {
+ *          "key": "value"
+ *      },
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-01T00:00:00.000Z"
+ *  }
  */
 
-activitiesRouter.post("/", async (req, res) => {
-    const {
-        userId,
-        tripId,
-        itineraryId,
-        title,
-        description,
-        location,
-        startTime,
-        endTime,
-        category,
-        detail
-    } = req.body as NewActivityInput;
-
-    if (!userId || !tripId || !itineraryId || !title || !location || !startTime || !endTime || !category) {
-        return res.status(400).json({
-            success: false,
-            message: "All fields are required"
-        });
-    }
-
-    if (startTime > endTime) {
-        return res.status(400).json({
-            success: false,
-            message: "Start time cannot be later than end time"
-        });
-    }
-
-    try {
-        const newActivity = await prisma.activity.create({
-            data: {
-                title,
-                description,
-                location,
-                startTime,
-                endTime,
-                category,
-                detail: detail ?? undefined,
-                itineraryId
-            }
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "Activity created successfully",
-            data: newActivity
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+activitiesRouter.post("/",
+    body('itineraryId')
+        .isUUID().withMessage("Invalid itinerary ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid itinerary ID"),
+    body('title')
+        .isString().withMessage("Title must be a string")
+        .isLength({ min: 1 }).withMessage("Title is required"),
+    body('description')
+        .isString().withMessage("Description must be a string")
+        .optional(),
+    body('location')
+        .isString().withMessage("Location must be a string")
+        .isLength({ min: 1 }).withMessage("Location is required"),
+    body('startTime')
+        .isISO8601().withMessage("Invalid start time"),
+    body('endTime')
+        .isISO8601().withMessage("Invalid end time"),
+    body('category')
+        .isString().withMessage("Category must be a string")
+        .isLength({ min: 1 }).withMessage("Category is required")
+        .isIn(['SIGHTSEEING', 'FOOD', 'ACCOMMODATION', 'SHOPPING', 'TRANSPORT', 'OTHER']).withMessage("Invalid category"),
+    body('details')
+        .isObject().withMessage("Details must be an object"),
+    createActivity
+);
 
 /**
  * PUT /activities/:id
  * Update an activity by ID
  * @param id - Activity ID
- * @property {string} userId - User ID
- * @property {string} tripId - Trip ID
- * @property {string} itineraryId - Itinerary ID
- * @property {string} title - Activity title
- * @property {string} description - Activity description
- * @property {string} location - Activity location
- * @property {string} startTime - Activity start time
- * @property {string} endTime - Activity end time
- * @property {string} category - Activity category
- * @property {string} detail - Activity detail
- * @returns {Activity} - Updated activity object
- * @throws {400} - User ID, Trip ID, and Itinerary ID are required
+ * @body itineraryId - Itinerary ID
+ * @body title - Activity title
+ * @body description - Activity description
+ * @body location - Activity location
+ * @body startTime - Activity start time
+ * @body endTime - Activity end time
+ * @body category - Activity category
+ * @body details - Activity details
+ * @returns {Object} - Success message, updated activity data
+ * @throws {400} - Invalid input
  * @throws {404} - Activity not found
- * @throws {403} - User not authorized to update this activity
  * @throws {500} - Internal server error
- * @example
- * PUT /activities/1
+ * @example PUT /activities/123e4567-e89b-12d3-a456-426614174000
  * {
- *   "userId": "1",
- *   "tripId": "1",
- *   "itineraryId": "1",
- *   "title": "Visit the Eiffel Tower",
- *   "description": "Visit the Eiffel Tower",
- *   "location": "Paris, France",
- *   "startTime": "09:00:00",
- *   "endTime": "11:00:00",
- *   "category": "Sightseeing",
- *   "detail": "Don't forget to bring a camera"
- * }
+ *  "success": true,
+ *  "message": "Activity successfully updated",
+ *  "data": {
+ *      "id": "123e4567-e89b-12d3-a456-426614174000",
+ *      "itineraryId": "123e4567-e89b-12d3-a456-426614174000",
+ *      "title": "Activity Title",
+ *      "description": "Activity Description",
+ *      "location": "Activity Location",
+ *      "startTime": "2021-09-01T00:00:00.000Z",
+ *      "endTime": "2021-09-01T00:00:00.000Z",
+ *      "category": "Sightseeing",
+ *      "details": {
+ *          "key": "value"
+ *      },
+ *      "createdAt": "2021-09-01T00:00:00.000Z",
+ *      "updatedAt": "2021-09-01T00:00:00.000Z"
+ *  }
  */
 
-activitiesRouter.put("/:id", async (req, res) => {
-    const activityId = req.params.id;
-    const {
-        userId,
-        tripId,
-        itineraryId,
-        title,
-        description,
-        location,
-        startTime,
-        endTime,
-        category,
-        detail
-    } = req.body as ExistingActivityInput;
-
-    if (!userId || !tripId || !itineraryId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID, Trip ID, and Itinerary ID are required"
-        });
-    }
-
-    if (startTime && endTime && startTime > endTime) {
-        return res.status(400).json({
-            success: false,
-            message: "Start time cannot be later than end time"
-        });
-    }
-
-    try {
-        const activity = await prisma.activity.findUnique({
-            where: {
-                id: activityId
-            },
-            include: {
-                itinerary: {
-                    select: {
-                        trip: {
-                            select: {
-                                userId: true
-                            }
-                        },
-                        tripId: true
-                    }
-                }
-            }
-        });
-
-        if (!activity) {
-            return res.status(404).json({
-                success: false,
-                message: "Activity not found"
-            });
-        } else if (
-            activity.itinerary.trip.userId !== userId ||
-            activity.itinerary.tripId !== tripId ||
-            activity.itineraryId !== itineraryId
-        ) {
-            return res.status(403).json({
-                success: false,
-                message: "User not authorized to update this activity"
-            });
-        } else if ((startTime && startTime > activity.endTime) || (endTime && endTime < activity.startTime)) {
-            return res.status(400).json({
-                success: false,
-                message: "Start time and end time must be within the original range"
-            });
-        }
-
-        await prisma.activity.update({
-            where: {
-                id: activityId
-            },
-            data: {
-                title: title || activity.title,
-                description: description || activity.description,
-                location: location || activity.location,
-                startTime: startTime || activity.startTime,
-                endTime: endTime || activity.endTime,
-                category: category || activity.category,
-                detail: detail || activity.detail || undefined
-            }
-        });
-
-        res.status(200).json({
-            success: true,
-            message: `Activity with ID ${activityId} is updated`,
-            data: activity
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+activitiesRouter.put("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid activity ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid activity ID"),
+    body('itineraryId')
+        .isUUID().withMessage("Invalid itinerary ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid itinerary ID"),
+    body('title')
+        .isString().withMessage("Title must be a string")
+        .optional(),
+    body('description')
+        .isString().withMessage("Description must be a string")
+        .optional(),
+    body('location')
+        .isString().withMessage("Location must be a string")
+        .optional(),
+    body('startTime')
+        .isISO8601().withMessage("Invalid start time")
+        .optional(),
+    body('endTime')
+        .isISO8601().withMessage("Invalid end time")
+        .optional(),
+    body('category')
+        .isString().withMessage("Category must be a string")
+        .isIn(['SIGHTSEEING', 'FOOD', 'ACCOMMODATION', 'SHOPPING', 'TRANSPORT', 'OTHER']).withMessage("Invalid category")
+        .optional(),
+    body('details')
+        .isObject().withMessage("Details must be an object")
+        .optional(),
+    updateActivity
+);
 
 /**
  * DELETE /activities/:id
  * Delete an activity by ID
  * @param id - Activity ID
- * @property {string} userId - User ID
- * @property {string} tripId - Trip ID
- * @property {string} itineraryId - Itinerary ID
- * @returns {Activity} - Deleted activity object
- * @throws {400} - User ID, Trip ID, and Itinerary ID are required
+ * @returns {Object} - Success message
+ * @throws {400} - Invalid input
  * @throws {404} - Activity not found
- * @throws {403} - User not authorized to delete this activity
  * @throws {500} - Internal server error
- * @example
- * DELETE /activities/1
+ * @example DELETE /activities/123e4567-e89b-12d3-a456-426614174000
  * {
- *   "success": true,
- *   "message": "Activity deleted successfully",
- *   "data": {
- *      "id": 1,
- *      "name": "Visit the Eiffel Tower",
- *      "location": "Paris, France",
- *      "date": "2022-01-01",
- *      "time": "09:00:00",
- *      "notes": "Don't forget to bring a camera",
- *      "itineraryId": 1,
- *      "createdAt": "2021-09-01T12:00:00.000Z",
- *      "updatedAt": "2021-09-01T12:00:00.000Z"
+ *  "success": true,
+ *  "message": "Activity successfully deleted"
  * }
  */
 
-activitiesRouter.delete("/:id", async (req, res) => {
-    const activityId = req.params.id;
-    const { userId, tripId, itineraryId } = req.body as UserQuery;
-
-    if (!userId || !tripId || !itineraryId) {
-        return res.status(400).json({
-            success: false,
-            message: "User ID, Trip ID, and Itinerary ID are required"
-        });
-    }
-
-    try {
-        const activity = await prisma.activity.findUnique({
-            where: {
-                id: activityId
-            },
-            include: {
-                itinerary: {
-                    select: {
-                        trip: {
-                            select: {
-                                userId: true
-                            }
-                        },
-                        tripId: true
-                    }
-                }
-            }
-        });
-
-        if (!activity) {
-            return res.status(404).json({
-                success: false,
-                message: "Activity not found"
-            });
-        } else if (
-            activity.itinerary.trip.userId !== userId ||
-            activity.itinerary.tripId !== tripId ||
-            activity.itineraryId !== itineraryId
-        ) {
-            return res.status(403).json({
-                success: false,
-                message: "User not authorized to delete this activity"
-            });
-        }
-
-        await prisma.activity.delete({
-            where: {
-                id: activityId
-            }
-        });
-
-        res.status(200).json({
-            success: true,
-            message: "Activity deleted successfully",
-            data: activity
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-});
+activitiesRouter.delete("/:id",
+    param('id')
+        .isUUID().withMessage("Invalid activity ID")
+        .isLength({ min: 36, max: 36 }).withMessage("Invalid activity ID"),
+    deleteActivity
+);
 
 export default activitiesRouter;

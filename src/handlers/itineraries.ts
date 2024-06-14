@@ -12,6 +12,13 @@ export const getItinerary = async (req: AuthRequest, res: Response) => {
     const itineraryId = req.params.id;
     const loggedInUserId = req.auth?.id;
 
+    if (!loggedInUserId) {
+        return res.status(401).json({
+            success: false,
+            message: "Unauthorized user"
+        });
+    }
+
     try {
         const itinerary = await prisma.itinerary.findUnique({
             where: {
