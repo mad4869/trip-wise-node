@@ -3,11 +3,11 @@ import type { Response } from "express";
 import type { Activity } from "@prisma/client";
 import type { AuthRequest } from "@/middleware/auth";
 
-type CreateActivityInput = Omit<Activity, "id" | "startTime" | "endTime" | "createdAt" | "updatedAt"> & {
+export type CreateActivityInput = Omit<Activity, "id" | "startTime" | "endTime" | "createdAt" | "updatedAt"> & {
     startTime: string,
     endTime: string
 };
-type UpdateActivityInput = Partial<Omit<CreateActivityInput, 'itineraryId'>> & { itineraryId: string };
+export type UpdateActivityInput = Partial<Omit<CreateActivityInput, 'itineraryId'>> & { itineraryId: string };
 
 export const getActivity = async (req: AuthRequest, res: Response) => {
     const activityId = req.params.id;
