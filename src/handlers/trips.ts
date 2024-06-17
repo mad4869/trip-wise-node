@@ -62,13 +62,6 @@ export const getTrips = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        if (trips.some(trip => trip.userId !== loggedInUserId)) {
-            res.status(403).json({
-                success: false,
-                message: "User not authorized to view these trips"
-            });
-        }
-
         res.status(200).json({
             success: true,
             message: "Trips successfully retrieved",

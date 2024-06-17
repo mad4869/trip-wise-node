@@ -344,7 +344,7 @@ export const deleteActivity = async (req: AuthRequest, res: Response) => {
 
         res.status(200).json({
             success: true,
-            message: "Activity deleted successfully",
+            message: "Activity successfully deleted",
             data: activity
         });
     } catch (error) {

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
+import { inputErrorMiddleware } from "@/middleware/errors";
 import { createActivity, deleteActivity, getActivities, getActivity, updateActivity } from '@/handlers/activities';
 
 const activitiesRouter = Router();
@@ -37,6 +38,7 @@ activitiesRouter.get("/:id",
     param('id')
         .isUUID().withMessage("Invalid activity ID")
         .isLength({ min: 36, max: 36 }).withMessage("Invalid activity ID"),
+    inputErrorMiddleware,
     getActivity
 );
 
@@ -75,6 +77,7 @@ activitiesRouter.get('/itineraries/:itineraryId',
     param('itineraryId')
         .isUUID().withMessage("Invalid itinerary ID")
         .isLength({ min: 36, max: 36 }).withMessage("Invalid itinerary ID"),
+    inputErrorMiddleware,
     getActivities
 );
 
@@ -136,6 +139,7 @@ activitiesRouter.post("/",
         .isIn(['SIGHTSEEING', 'FOOD', 'ACCOMMODATION', 'SHOPPING', 'TRANSPORT', 'OTHER']).withMessage("Invalid category"),
     body('details')
         .isObject().withMessage("Details must be an object"),
+    inputErrorMiddleware,
     createActivity
 );
 
@@ -205,6 +209,7 @@ activitiesRouter.put("/:id",
     body('details')
         .isObject().withMessage("Details must be an object")
         .optional(),
+    inputErrorMiddleware,
     updateActivity
 );
 
@@ -227,6 +232,7 @@ activitiesRouter.delete("/:id",
     param('id')
         .isUUID().withMessage("Invalid activity ID")
         .isLength({ min: 36, max: 36 }).withMessage("Invalid activity ID"),
+    inputErrorMiddleware,
     deleteActivity
 );
 
