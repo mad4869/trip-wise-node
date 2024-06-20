@@ -30,11 +30,10 @@ remindersRouter.get("/:id", getReminder);
 /**
  * GET /reminders/users/:userId
  * Get all reminders for a user
- * @param userId - User ID
  * @returns {Object} - Success message, reminders data
  * @throws {400} - Invalid input
  * @throws {404} - Reminders not found
- * @example GET /reminders/users/123e4567-e89b-12d3-a456-426614174000
+ * @example GET /reminders/
  * {
  *  "success": true,
  *  "message": "Reminders successfully retrieved",
@@ -51,7 +50,7 @@ remindersRouter.get("/:id", getReminder);
  * ]
  */
 
-remindersRouter.get("/users/:userId", getReminders)
+remindersRouter.get("/", getReminders)
 
 /**
  * POST /reminders

@@ -137,8 +137,8 @@ activitiesRouter.post("/",
         .isString().withMessage("Category must be a string")
         .isLength({ min: 1 }).withMessage("Category is required")
         .isIn(['SIGHTSEEING', 'FOOD', 'ACCOMMODATION', 'SHOPPING', 'TRANSPORT', 'OTHER']).withMessage("Invalid category"),
-    body('details')
-        .isObject().withMessage("Details must be an object"),
+    body('detail')
+        .isObject().withMessage("Detail must be an object"),
     inputErrorMiddleware,
     createActivity
 );

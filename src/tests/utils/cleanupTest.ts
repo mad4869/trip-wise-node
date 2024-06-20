@@ -4,8 +4,6 @@ import type { Activity, Expense, Itinerary, Reminder, Trip, User } from "@prisma
 type CleanupItem = User | Trip | Itinerary | Activity | Expense | Reminder;
 
 const cleanup = async (...items: CleanupItem[]) => {
-    // await prisma.trip.delete({ where: { id: trip.id } });
-    // await prisma.user.delete({ where: { id: user.id } });
     for (const item of items) {
         if ('userId' in item && 'tripId' in item) {
             await prisma.reminder.delete({ where: { id: item.id } });

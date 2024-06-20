@@ -6,7 +6,7 @@ import type { AuthRequest } from "@/middleware/auth";
 export type CreateReminderInput = {
     [K in keyof Omit<Reminder, "id" | "userId" | "createdAt" | "updatedAt">]: string
 }
-type UpdateReminderInput = Partial<Omit<CreateReminderInput, "tripId">> & { tripId: string }
+export type UpdateReminderInput = Partial<Omit<CreateReminderInput, "tripId">> & { tripId: string }
 
 export const getReminder = async (req: AuthRequest, res: Response) => {
     const reminderId = req.params.id;
